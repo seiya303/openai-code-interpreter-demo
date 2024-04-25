@@ -16,8 +16,8 @@ load_dotenv(dotenv_path)
 client = OpenAI()
 # IF: https://platform.openai.com/docs/assistants/how-it-works/creating-assistants
 assistant = client.beta.assistants.create(
-    name="Math Tutor",
-    instructions="You are a personal math tutor. Answer questions briefly, in a sentence or less.",
+    name="汎用アシスタント",
+    instructions="あなたは汎用的なアシスタントです。質問には簡潔かつ正確に答えてください。",
     tools=[{"type": "code_interpreter"}],
     model="gpt-4-turbo",
 )
