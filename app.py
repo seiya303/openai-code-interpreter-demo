@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import streamlit as st
 from openai import OpenAI
 
@@ -9,9 +10,7 @@ client = OpenAI()
 
 with st.form("form", clear_on_submit=False):
     user_question = st.text_area("文章を入力")
-    file = [
-        st.file_uploader("ファイルをアップロード", accept_multiple_files=False)
-    ] or None
+    file = [st.file_uploader("ファイルをアップロード", accept_multiple_files=False)] or None
     submitted = st.form_submit_button("送信")
 
 if submitted:

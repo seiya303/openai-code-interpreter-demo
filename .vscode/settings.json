@@ -1,0 +1,15 @@
+{
+    // ルーラー (参考)
+    "editor.rulers": [80, 88],
+
+    "[python]": {
+      "editor.codeActionsOnSave": {
+        "source.organizeImports": "explicit"
+      },
+      "editor.defaultFormatter": "charliermarsh.ruff",
+      "editor.formatOnSave": true
+    },
+    // pipでインストールした場合は下記を項目指定。
+    // "ruff.path": ["${workspaceFolder}/.venv/bin/ruff"],
+    // "mypy-type-checker.path": ["${workspaceFolder}/.venv/bin/mypy"]
+}
