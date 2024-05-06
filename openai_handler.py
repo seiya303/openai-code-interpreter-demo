@@ -6,12 +6,14 @@ from typing import (
     Iterable,
     Literal,
     Optional,
+    Tuple,
     TypedDict,
 )
 
 import streamlit as st
 from dotenv import load_dotenv
 from openai import OpenAI
+from openai.lib.streaming._assistants import AssistantStreamManager
 from openai.pagination import SyncCursorPage
 from openai.types.beta.thread import Thread
 from openai.types.beta.thread_create_params import (
@@ -28,6 +30,8 @@ from openai.types.beta.threads import (
 from streamlit.runtime.uploaded_file_manager import (
     UploadedFile,
 )
+
+from openai_event_handler import EventHandler
 
 dotenv_path = join(dirname(__file__), ".env.local")
 load_dotenv(dotenv_path)
@@ -57,10 +61,13 @@ def submit_message(
     user_message: str,
     files: Optional[list[Optional[UploadedFile]]] = None,
     assistant_id: str = ASSISTANT_ID,
-) -> tuple[Thread, Run]:
+) -> Tuple[Thread, AssistantStreamManager[EventHandler]]:
     print("assistant_id:", assistant_id)
     print("user_message:", user_message)
     print("files:", files)
+
+    with st.chat_message("user"):
+        st.write(user_message)
 
     if files is None:
         files = [None]
@@ -84,12 +91,13 @@ def submit_message(
     thread = client.beta.threads.create(messages=_messages)
     print("thread_id:", thread.id)
 
-    run = client.beta.threads.runs.create(
+    stream = client.beta.threads.runs.stream(
         thread_id=thread.id,
-        assistant_id=assistant_id,
+        assistant_id=assistant.id,
+        instructions="ユーザーのメッセージと同じ言語で回答してください。",
+        event_handler=EventHandler(),
     )
-    print("run_id:", run.id)
-    return thread, run
+    return thread, stream
 
 
 def submit_file(files: list[Optional[UploadedFile]]) -> list[str]:
@@ -180,6 +188,13 @@ def wait_on_run(run: Run, thread: Thread) -> Run:
         print("run.status:", run.status)
         time.sleep(0.5)
     return run
+
+
+def wait_on_stream(stream: AssistantStreamManager[EventHandler], thread: Thread) -> None:
+    with st.chat_message("assistant"):
+        with stream as s:
+            st.write_stream(s.text_deltas)
+            s.until_done()
 
 
 def get_file(file_id: str) -> bytes:

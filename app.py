@@ -4,7 +4,7 @@ from openai import OpenAI
 
 import openai_handler
 
-st.title("Assistant API Interpreter")
+st.title("Assistant API Code Interpreter")
 
 client = OpenAI()
 
@@ -14,12 +14,7 @@ with st.form("form", clear_on_submit=False):
     submitted = st.form_submit_button("送信")
 
 if submitted:
-    st.session_state["thread"], st.session_state["run"] = openai_handler.submit_message(
+    st.session_state["thread"], st.session_state["stream"] = openai_handler.submit_message(
         user_question, file
     )
-    st.session_state["run"] = openai_handler.wait_on_run(
-        st.session_state["run"], st.session_state["thread"]
-    )
-
-if st.session_state.get("thread"):
-    openai_handler.pretty_print(openai_handler.get_response(st.session_state["thread"]))
+    openai_handler.wait_on_stream(st.session_state["stream"], st.session_state["thread"])
