@@ -42,7 +42,7 @@ assistant = client.beta.assistants.create(
     name="汎用アシスタント",
     instructions="あなたは汎用的なアシスタントです。質問には簡潔かつ正確に答えてください。",
     tools=[{"type": "code_interpreter"}],
-    model="gpt-4-turbo",
+    model="gpt-4o",
 )
 ASSISTANT_ID = assistant.id
 
