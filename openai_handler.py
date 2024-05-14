@@ -12,7 +12,7 @@ from typing import (
 
 import streamlit as st
 from dotenv import load_dotenv
-from openai import OpenAI
+from openai import AssistantEventHandler, OpenAI
 from openai.lib.streaming._assistants import AssistantStreamManager
 from openai.pagination import SyncCursorPage
 from openai.types.beta.thread import Thread
@@ -27,11 +27,48 @@ from openai.types.beta.threads import (
     Run,
     TextContentBlock,
 )
+from openai.types.beta.threads.image_file import ImageFile
+from openai.types.beta.threads.text import Text
 from streamlit.runtime.uploaded_file_manager import (
     UploadedFile,
 )
+from typing_extensions import override
 
-from openai_event_handler import EventHandler
+
+class EventHandler(AssistantEventHandler):
+    @override
+    def on_text_created(self, text: Text) -> None:
+        print("\nassistant > ", end="", flush=True)
+
+    @override
+    def on_text_delta(self, delta: Any, snapshot: Any) -> None:
+        print(delta.value, end="", flush=True)
+
+    @override
+    def on_image_file_done(self, image_file: ImageFile) -> None:
+        print("on_image_file_done image_file id:", image_file.file_id)
+        st.image(get_file(image_file.file_id))
+
+    @override
+    def on_end(self) -> None:
+        print("on_end")
+        if "thread" in st.session_state:
+            thread = st.session_state["thread"]
+            pretty_print(get_response(thread))
+
+    def on_tool_call_created(self, tool_call: Any) -> None:
+        print(f"\nassistant > {tool_call.type}\n", flush=True)
+
+    def on_tool_call_delta(self, delta: Any, snapshot: Any) -> None:
+        if delta.type == "code_interpreter":
+            if delta.code_interpreter.input:
+                print(delta.code_interpreter.input, end="", flush=True)
+            if delta.code_interpreter.outputs:
+                print("\n\noutput >", flush=True)
+                for output in delta.code_interpreter.outputs:
+                    if output.type == "logs":
+                        print(f"\n{output.logs}", flush=True)
+
 
 dotenv_path = join(dirname(__file__), ".env.local")
 load_dotenv(dotenv_path)
@@ -126,17 +163,7 @@ def pretty_print(messages: SyncCursorPage[Message]) -> None:
         print("content:", m.content)
         if m.role == "assistant":
             for content in m.content:
-                image_file_id = ""
                 cont_dict = content.model_dump()
-                if (_image_file := cont_dict.get("image_file")) is not None and isinstance(
-                    _image_file, dict
-                ):
-                    print("image_file:", _image_file)
-                    if (_image_file_id := _image_file.get("file_id")) is not None and isinstance(
-                        _image_file_id, str
-                    ):
-                        image_file_id = _image_file_id
-                        st.image(get_file(image_file_id))
 
                 if cont_dict.get("text") is not None and isinstance(content, TextContentBlock):
                     message_content = content.text
@@ -186,9 +213,6 @@ def wait_on_stream(stream: AssistantStreamManager[EventHandler], thread: Thread)
         with stream as s:
             st.write_stream(s.text_deltas)
             s.until_done()
-        if "thread" in st.session_state:
-            thread = st.session_state["thread"]
-            pretty_print(get_response(thread))
 
 
 def get_file(file_id: str) -> bytes:
