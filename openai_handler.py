@@ -122,16 +122,16 @@ def get_response(thread: Thread) -> SyncCursorPage[Message]:
 
 def pretty_print(messages: SyncCursorPage[Message]) -> None:
     for m in messages:
-        print("m:", m)
-        with st.chat_message(m.role):
-            print("content:", m.content)
+        print("role:", m.role)
+        print("content:", m.content)
+        if m.role == "assistant":
             for content in m.content:
                 image_file_id = ""
                 cont_dict = content.model_dump()
                 if (_image_file := cont_dict.get("image_file")) is not None and isinstance(
                     _image_file, dict
                 ):
-                    print(_image_file)
+                    print("image_file:", _image_file)
                     if (_image_file_id := _image_file.get("file_id")) is not None and isinstance(
                         _image_file_id, str
                     ):
@@ -141,7 +141,6 @@ def pretty_print(messages: SyncCursorPage[Message]) -> None:
                 if cont_dict.get("text") is not None and isinstance(content, TextContentBlock):
                     message_content = content.text
                     annotations = message_content.annotations
-                    citations = []
                     files = []
                     for (
                         index,
@@ -156,20 +155,12 @@ def pretty_print(messages: SyncCursorPage[Message]) -> None:
                             "file_path",
                             None,
                         ):
-                            cited_file = client.files.retrieve(file_path.file_id)
-                            citation = (
-                                f"[{index}] Click <here> to download {cited_file.filename}, "
-                                f"file_id: {file_path.file_id}"
-                            )
-                            citations.append(citation)
                             files.append(
                                 (
                                     file_path.file_id,
                                     annotation.text.split("/")[-1],
                                 )
                             )
-                    message_content.value += "\n" + "\n".join(citations)
-                    st.write(message_content.value)
                     for file in files:
                         st.download_button(
                             f"{file[1]} : ダウンロード",
@@ -195,6 +186,9 @@ def wait_on_stream(stream: AssistantStreamManager[EventHandler], thread: Thread)
         with stream as s:
             st.write_stream(s.text_deltas)
             s.until_done()
+        if "thread" in st.session_state:
+            thread = st.session_state["thread"]
+            pretty_print(get_response(thread))
 
 
 def get_file(file_id: str) -> bytes:
