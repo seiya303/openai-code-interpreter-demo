@@ -94,7 +94,7 @@ def submit_message(
     stream = client.beta.threads.runs.stream(
         thread_id=thread.id,
         assistant_id=assistant.id,
-        instructions="ユーザーのメッセージと同じ言語で回答してください。",
+        instructions="ユーザーのメッセージと同じ言語で回答してください。回答を生成する際はユーザーへの確認は不要です。",
         event_handler=EventHandler(),
     )
     return thread, stream
